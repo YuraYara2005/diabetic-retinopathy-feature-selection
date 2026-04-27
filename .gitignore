@@ -1,0 +1,19 @@
+# Ignore Dataset and Extracted Features
+data/raw/
+data/processed/
+
+# Ignore Output Logs and Plots
+results/ga/
+results/pso/
+results/aco/
+
+# Ignore Python Caches and Environments
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
