@@ -17,3 +17,6 @@ env/
 # Ignore OS files
 .DS_Store
 Thumbs.db
+
+# Ignore JetBrains IDE files
+.idea/
