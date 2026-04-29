@@ -1,0 +1,9 @@
+swarm_size: 30
+max_iterations: 50
+
+w: 0.7
+c1: 1.5
+c2: 1.5
+
+velocity_min: -4
+velocity_max: 4
