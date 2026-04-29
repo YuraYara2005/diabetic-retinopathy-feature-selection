@@ -1,0 +1,12 @@
+# config/experiment_config.yaml
+experiment:
+  num_runs: 30
+  master_seed: 42
+  classifier: "KNN"
+  alpha: 0.95
+
+dataset:
+  x_train_path: "data/processed/train_features.npy"
+  y_train_path: "data/processed/train_labels.npy"
+  x_val_path: "data/processed/val_features.npy"
+  y_val_path: "data/processed/val_labels.npy"
