@@ -1,86 +1,191 @@
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
+
 import streamlit as st
 
-# --- 1. BULLETPROOF PATHING ---
+# ── Bulletproof path setup ───────────────────────────────────────────────────
 root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
-    sys.path.append(str(root_dir))
+    sys.path.insert(0, str(root_dir))
 
-# --- 2. IMPORTS ---
+# ── Project imports ──────────────────────────────────────────────────────────
 from src.algorithms.experiment_runner import run_experiments
-from results.analyze_results import analyze_algorithm_runs
 from src.ui.sidebar import render_sidebar
 from src.ui.visualizations import render_charts
 from src.ui.state_manager import init_session_state, save_experiment_results
 
-# --- 3. PAGE SETUP & CSS ---
-st.set_page_config(page_title="APTOS Dashboard", layout="wide", initial_sidebar_state="expanded")
+# Try to import analyzer — graceful fallback if results don't exist yet
+try:
+    from results.analyze_results import analyze_algorithm_runs
+    ANALYZER_AVAILABLE = True
+except ImportError:
+    ANALYZER_AVAILABLE = False
 
-# --- 4. INIT MEMORY ---
-init_session_state()
-
-# --- 5. MAIN UI EXECUTION ---
-st.title("APTOS Feature Selection Dashboard")
-# --- MAIN UI EXECUTION ---
-algo_1, algo_2, classifier_ui, pop_size, generations, run_clicked, btn_placeholder = render_sidebar(
-    data_1=st.session_state.data_1 if st.session_state.has_run else None,
-    data_2=st.session_state.data_2 if st.session_state.has_run else None,
-    algo_1_name=st.session_state.get('last_algo_1', 'Algorithm A'),
-    algo_2_name=st.session_state.get('last_algo_2', 'Algorithm B')
+# ── Page config ──────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title = "APTOS Feature Selection Dashboard",
+    layout     = "wide",
+    initial_sidebar_state = "expanded",
 )
 
-# 1. TRANSLATOR: Map UI names to backend keys
-model_mapping = {
-    "KNN": "knn",
+# ── Session state ────────────────────────────────────────────────────────────
+init_session_state()
+
+# ── Classifier name mapping  (UI label → backend key) ───────────────────────
+MODEL_MAP = {
+    "KNN":           "knn",
     "Random Forest": "random_forest",
-    "SVM": "svm"
+    "SVM":           "svm",
 }
 
+# ── Algorithm display name mapping ──────────────────────────────────────────
+ALGO_DISPLAY = {
+    "dummy": "Dummy",
+    "pso":   "PSO",
+    "ga":    "GA",
+}
+
+# ────────────────────────────────────────────────────────────────────────────
+# TITLE
+# ────────────────────────────────────────────────────────────────────────────
+st.title("🧬 APTOS Feature Selection Dashboard")
+st.caption("Evolutionary Algorithm Comparison — Diabetic Retinopathy Dataset")
+
+# ────────────────────────────────────────────────────────────────────────────
+# SIDEBAR
+# ────────────────────────────────────────────────────────────────────────────
+(
+    algo_1, algo_2,
+    classifier_ui,
+    pop_size, generations,
+    run_clicked,
+    btn_placeholder,
+) = render_sidebar(
+    data_1      = st.session_state.data_1 if st.session_state.has_run else None,
+    data_2      = st.session_state.data_2 if st.session_state.has_run else None,
+    algo_1_name = st.session_state.get("last_algo_1", "Algorithm A"),
+    algo_2_name = st.session_state.get("last_algo_2", "Algorithm B"),
+)
+
+# ────────────────────────────────────────────────────────────────────────────
+# RUN EXPERIMENTS
+# ────────────────────────────────────────────────────────────────────────────
 if run_clicked:
-    # Get the technical name for the backend
-    classifier_backend = model_mapping.get(classifier_ui)
+    classifier_backend = MODEL_MAP.get(classifier_ui, "knn")
 
-    btn_placeholder.button("⏳ Processing...", disabled=True, use_container_width=True)
+    # Normalize algo names to lowercase backend keys
+    algo_1_key = algo_1.lower().strip()
+    algo_2_key = algo_2.lower().strip()
 
-    st.session_state.last_algo_1 = algo_1
-    st.session_state.last_algo_2 = algo_2
+    # Validate — catch unknown algorithms before they crash the runner
+    valid_algos = {"dummy", "pso", "ga"}
+    if algo_1_key not in valid_algos or algo_2_key not in valid_algos:
+        st.error(f"Unknown algorithm selected. Choose from: {', '.join(valid_algos)}")
+        st.stop()
 
-    progress_text = f"Simulating {generations} generations..."
-    my_bar = st.progress(0, text=progress_text)
+    # Save names for chart labels
+    st.session_state.last_algo_1 = ALGO_DISPLAY.get(algo_1_key, algo_1_key.upper())
+    st.session_state.last_algo_2 = ALGO_DISPLAY.get(algo_2_key, algo_2_key.upper())
 
-    for percent_complete in range(100):
-        time.sleep(0.01)
-        my_bar.progress(percent_complete + 1)
+    # Disable the button while running
+    btn_placeholder.button("⏳ Running...", disabled=True, use_container_width=True)
 
-    with st.spinner("Compiling Final Results..."):
-        # 2. FIX: Pass 'classifier_backend' instead of the raw UI string
+    st.markdown("---")
+
+    # ── Run Algorithm 1 ──────────────────────────────────────────────────
+    st.subheader(f"Running {st.session_state.last_algo_1}...")
+    progress_bar_1 = st.progress(0, text="Starting runs...")
+
+    def update_progress_1(fraction: float):
+        pct  = int(fraction * 100)
+        runs_done = round(fraction * 30)
+        progress_bar_1.progress(pct, text=f"Run {runs_done}/30 complete")
+
+    try:
         run_experiments(
-            algo_name=algo_1.lower(),
-            classifier_override=classifier_backend,
-            pop_override=pop_size,
-            gen_override=generations
+            algo_name           = algo_1_key,
+            config_path         = "experiment_config.yaml",
+            classifier_override = classifier_backend,
+            pop_override        = pop_size,
+            gen_override        = generations,
+            progress_callback   = update_progress_1,
         )
+        progress_bar_1.progress(100, text=f"✅ {st.session_state.last_algo_1} complete!")
+    except FileNotFoundError as e:
+        progress_bar_1.empty()
+        st.error(f"Dataset not found for {st.session_state.last_algo_1}.\n\n{e}")
+        st.info("💡 Tip: Use **Dummy** algorithm to test the UI before the dataset is ready.")
+        st.stop()
+    except Exception as e:
+        progress_bar_1.empty()
+        st.error(f"Error running {st.session_state.last_algo_1}: {e}")
+        st.stop()
 
-        if algo_1 != algo_2:
+    # ── Run Algorithm 2 (skip if same as algo 1) ─────────────────────────
+    if algo_1_key != algo_2_key:
+        st.subheader(f"Running {st.session_state.last_algo_2}...")
+        progress_bar_2 = st.progress(0, text="Starting runs...")
+
+        def update_progress_2(fraction: float):
+            pct = int(fraction * 100)
+            runs_done = round(fraction * 30)
+            progress_bar_2.progress(pct, text=f"Run {runs_done}/30 complete")
+
+        try:
             run_experiments(
-                algo_name=algo_2.lower(),
-                classifier_override=classifier_backend,
-                pop_override=pop_size,
-                gen_override=generations
+                algo_name           = algo_2_key,
+                config_path         = "experiment_config.yaml",
+                classifier_override = classifier_backend,
+                pop_override        = pop_size,
+                gen_override        = generations,
+                progress_callback   = update_progress_2,
             )
+            progress_bar_2.progress(100, text=f"✅ {st.session_state.last_algo_2} complete!")
+        except FileNotFoundError as e:
+            progress_bar_2.empty()
+            st.error(f"Dataset not found for {st.session_state.last_algo_2}.\n\n{e}")
+            st.info("💡 Tip: Use **Dummy** algorithm to test the UI before the dataset is ready.")
+            st.stop()
+        except Exception as e:
+            progress_bar_2.empty()
+            st.error(f"Error running {st.session_state.last_algo_2}: {e}")
+            st.stop()
 
-        data_1 = analyze_algorithm_runs(algo_1.lower())
-        data_2 = analyze_algorithm_runs(algo_2.lower())
-        save_experiment_results(data_1, data_2)
+    # ── Load results & rerender ──────────────────────────────────────────
+    if not ANALYZER_AVAILABLE:
+        st.error(
+            "`results/analyze_results.py` not found. "
+            "Make sure that file exists and `results/__init__.py` is present."
+        )
+        st.stop()
 
-    my_bar.empty()
+    with st.spinner("📊 Compiling results..."):
+        try:
+            data_1 = analyze_algorithm_runs(algo_1_key)
+            data_2 = analyze_algorithm_runs(algo_2_key)
+            save_experiment_results(data_1, data_2)
+        except Exception as e:
+            st.error(f"Failed to analyze results: {e}")
+            st.stop()
+
     st.rerun()
 
-# --- 6. RENDER CHARTS ---
+# ────────────────────────────────────────────────────────────────────────────
+# CHARTS (shown after first successful run)
+# ────────────────────────────────────────────────────────────────────────────
 if st.session_state.has_run:
-    render_charts(st.session_state.data_1, st.session_state.data_2,
-                  st.session_state.last_algo_1, st.session_state.last_algo_2)
+    render_charts(
+        st.session_state.data_1,
+        st.session_state.data_2,
+        st.session_state.last_algo_1,
+        st.session_state.last_algo_2,
+    )
 else:
-    st.info("👈 Select your algorithms in the sidebar and click 'Run Comparison' to start!")
+    st.info("👈 Select two algorithms in the sidebar and click **Run Comparison** to begin.")
+    st.markdown("""
+    ### 🚀 Quick Start
+    - **Dummy vs Dummy** — tests the full UI pipeline instantly, no dataset needed
+    - **Dummy vs PSO** — tests PSO with real data while Dummy provides a baseline  
+    - **PSO vs GA** — full comparison once both algorithms and the dataset are ready
+    """)
