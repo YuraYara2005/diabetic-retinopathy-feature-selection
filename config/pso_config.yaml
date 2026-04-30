@@ -1,4 +1,4 @@
-swarm_size: 30
+pop_size: 30
 max_iterations: 50
 
 w: 0.7
