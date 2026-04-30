@@ -21,7 +21,6 @@ class BaseModel(ABC):
 
 class SVMModel(BaseModel):
     def __init__(self):
-        # تم إضافة cache_size لتسريع المعالجة في الأبعاد العالية
         self.model = SVC(kernel='linear', C=1, cache_size=1000)
 
     def train_and_evaluate(self, X_train, y_train, X_val, y_val):

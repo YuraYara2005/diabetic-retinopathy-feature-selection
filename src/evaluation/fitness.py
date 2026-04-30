@@ -40,7 +40,6 @@ class FitnessEvaluator:
 
         key = tuple(solution)
 
-        # 🔁 Cache
         if key in self.cache:
             return self.cache[key]
 
