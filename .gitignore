@@ -6,17 +6,14 @@ data/processed/
 results/ga/
 results/pso/
 results/aco/
-
 # Ignore Python Caches and Environments
 __pycache__/
 *.pyc
 .venv/
 venv/
 env/
-
 # Ignore OS files
 .DS_Store
 Thumbs.db
-
 # Ignore JetBrains IDE files
 .idea/

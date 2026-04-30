@@ -1,0 +1,10 @@
+pop_size: 100
+num_generations: 100
+mutation_rate: 0.015
+crossover_rate: 0.85
+init_prob: 0.002
+k_tournament: 3
+patience: 20
+diversity_low: 0.1
+diversity_extreme: 0.02
+inject_ratio: 0.15
