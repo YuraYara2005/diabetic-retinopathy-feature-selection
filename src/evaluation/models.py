@@ -38,7 +38,7 @@ class RandomForestModel(BaseModel):
             n_estimators=50,
             max_depth=10,
             n_jobs=-1,
-            random_state=42  # لضمان استقرار نتائج الفيتنس
+            random_state=42
         )
 
     def train_and_evaluate(self, X_train, y_train, X_val, y_val):
