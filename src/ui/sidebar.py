@@ -32,8 +32,7 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
 
         st.sidebar.markdown("### 📊 Live Results")
 
-        # ABSOLUTELY ZERO INDENTATION ON EVERY SINGLE LINE.
-        # This physically prevents Streamlit from turning it into a code block.
+        # ABSOLUTELY ZERO INDENTATION TO PREVENT STREAMLIT HTML ERRORS
         custom_metrics = f"""
 <div style="background-color: #1e1e24; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #333;">
 <!-- Algorithm A -->
@@ -73,14 +72,49 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
 """
         st.sidebar.markdown(custom_metrics, unsafe_allow_html=True)
 
-    st.sidebar.header("🎛️ Primary Controls")
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        algo_1 = st.selectbox("Algorithm A", ["dummy", "GA", "PSO"], index=1)
-    with col2:
-        algo_2 = st.selectbox("Algorithm B", ["dummy", "GA", "PSO"], index=2)
+    st.sidebar.header("🎛️ Algorithm Comparison")
 
-    classifier = st.sidebar.pills("Classifier Engine", ["KNN", "Random Forest", "SVM"], default="Random Forest")
+    # 💥 DYNAMIC ALGORITHM A CONTROLS
+    st.sidebar.subheader("🔴 Algorithm A")
+    base_a = st.sidebar.pills("Type", ["Dummy", "PSO", "GA"], default="PSO", key="base_a") or "PSO"
+
+    if base_a == "GA":
+        sel_a = st.sidebar.pills("Selection Method", ["Tournament", "Roulette"], default="Tournament",
+                                 key="sel_a") or "Tournament"
+        cross_a = st.sidebar.pills("Crossover Method", ["Uniform", "One-Point"], default="Uniform",
+                                   key="cross_a") or "Uniform"
+        algo_1 = f"GA ({sel_a} + {cross_a})"
+    elif base_a == "PSO":
+        inertia_a = st.sidebar.pills("Inertia Strategy", ["Linear Decay", "High Inertia", "Low Inertia"],
+                                     default="Linear Decay", key="in_a") or "Linear Decay"
+        algo_1 = f"PSO ({inertia_a})"
+    else:
+        algo_1 = "Dummy"
+
+    st.sidebar.divider()
+
+    # 💥 DYNAMIC ALGORITHM B CONTROLS
+    st.sidebar.subheader("🟢 Algorithm B")
+    base_b = st.sidebar.pills("Type", ["Dummy", "PSO", "GA"], default="GA", key="base_b") or "GA"
+
+    if base_b == "GA":
+        sel_b = st.sidebar.pills("Selection Method", ["Tournament", "Roulette"], default="Tournament",
+                                 key="sel_b") or "Tournament"
+        cross_b = st.sidebar.pills("Crossover Method", ["Uniform", "One-Point"], default="Uniform",
+                                   key="cross_b") or "Uniform"
+        algo_2 = f"GA ({sel_b} + {cross_b})"
+    elif base_b == "PSO":
+        inertia_b = st.sidebar.pills("Inertia Strategy", ["Linear Decay", "High Inertia", "Low Inertia"],
+                                     default="Linear Decay", key="in_b") or "Linear Decay"
+        algo_2 = f"PSO ({inertia_b})"
+    else:
+        algo_2 = "Dummy"
+
+    st.sidebar.divider()
+
+    # ── GLOBAL CONTROLS ──
+    classifier = st.sidebar.pills("⚙️ Classifier Engine", ["KNN", "Random Forest", "SVM"],
+                                  default="Random Forest") or "Random Forest"
 
     pop_size = st.sidebar.slider("Population Size", 10, 100, 50, 10)
     generations = st.sidebar.slider("Generations", 10, 200, 100, 10)

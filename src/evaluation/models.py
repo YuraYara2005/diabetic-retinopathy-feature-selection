@@ -2,6 +2,9 @@ import warnings
 # This stops Intel from spamming your terminal with the yellow Threading warnings
 warnings.filterwarnings("ignore", message=".*'Threading' parallel backend is not supported.*")
 
+from sklearnex import patch_sklearn
+patch_sklearn()
+
 import numpy as np
 from abc import ABC, abstractmethod
 from sklearn.svm import SVC

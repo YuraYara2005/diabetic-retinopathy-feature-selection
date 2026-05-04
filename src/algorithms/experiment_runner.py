@@ -85,7 +85,8 @@ def run_experiments(
         OptimizerClass = DummyOptimizer
         needs_real_data = False
 
-    elif algo_name == "pso":
+    # 💥 INERTIA DYNAMIC PSO INJECTION
+    elif algo_name.startswith("pso"):
         from src.algorithms.pso import BinaryPSO
         OptimizerClass = BinaryPSO
         needs_real_data = True
@@ -102,7 +103,18 @@ def run_experiments(
         if gen_override is None:
             max_iterations = algo_config.get("max_iterations", max_iterations)
 
-    elif algo_name == "ga":
+        # Inject Inertia parameters based on UI selection
+        if "linear" in algo_name:
+            algo_config["w_max"] = 0.9
+            algo_config["w_min"] = 0.4
+        elif "high" in algo_name:
+            algo_config["w_max"] = 0.9
+            algo_config["w_min"] = 0.9
+        elif "low" in algo_name:
+            algo_config["w_max"] = 0.4
+            algo_config["w_min"] = 0.4
+
+    elif algo_name.startswith("ga"):
         from src.algorithms.ga import GeneticAlgorithm
         OptimizerClass = GeneticAlgorithm
         needs_real_data = True
@@ -117,6 +129,17 @@ def run_experiments(
         # Inject our UI variables directly into the GA's config dictionary
         algo_config["pop_size"] = pop_size
         algo_config["num_generations"] = max_iterations
+
+        # Inject Strategy parameters based on UI selection
+        if "tourn" in algo_name:
+            algo_config["selection_type"] = "tournament"
+        elif "roul" in algo_name:
+            algo_config["selection_type"] = "roulette"
+
+        if "uni" in algo_name:
+            algo_config["crossover_type"] = "uniform"
+        elif "one" in algo_name:
+            algo_config["crossover_type"] = "one_point"
 
     else:
         raise ValueError(f"Unknown algorithm '{algo_name}'. Choose from: dummy, pso, ga")
@@ -173,7 +196,7 @@ def run_experiments(
             evaluator.cache.clear()
 
         # Dynamic Instantiation: Each algorithm gets strictly what its __init__ asks for
-        if algo_name == "ga":
+        if algo_name.startswith("ga"):
             optimizer = OptimizerClass(
                 num_features=num_features,
                 max_iterations=max_iterations,
@@ -181,8 +204,7 @@ def run_experiments(
                 config=algo_config,
                 seed=seed,
             )
-        elif algo_name == "pso":
-            # 💥 ZERO TRACES OF 'w' REMAIN IN THIS BLOCK 💥
+        elif algo_name.startswith("pso"):
             optimizer = OptimizerClass(
                 num_features=num_features,
                 max_iterations=max_iterations,
@@ -207,7 +229,7 @@ def run_experiments(
 
         best_subset, best_fitness, history = optimizer.run()
 
-        # 💥 NEW: Recalculate raw accuracy for the absolute best subset before saving 💥
+        # Recalculate raw accuracy for the absolute best subset before saving
         if needs_real_data and int(best_subset.sum()) > 0:
             selected_idx = np.where(best_subset == 1)[0]
             best_accuracy = evaluator.model.train_and_evaluate(
