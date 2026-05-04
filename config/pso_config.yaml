@@ -2,7 +2,7 @@
 # Tuned for high-dimensional binary feature selection (512–2048 features)
 # Based on canonical PSO (Shi & Eberhart, 1998)
 
-pop_size: 40
+pop_size: 30
 max_iterations: 100
 
 # Inertia weight — decays linearly from w_max to w_min over all iterations

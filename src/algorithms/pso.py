@@ -140,18 +140,6 @@ class BinaryPSO(BaseOptimizer):
             probs = self.sigmoid(self.velocities[i])
             self.population[i] = (self.rng.random(self.num_features) < probs).astype(int)
 
-            #if self.rng.random() < 0.2:
-             #   idx = self.rng.integers(self.num_features)
-              #  self.population[i][idx] = 1 - self.population[i][idx]
-            if self.rng.random() < 0.1:
-                flip_count = max(1, int(0.01 * self.num_features))  # flip 1% features
-                indices = self.rng.choice(
-                    self.num_features,
-                    size=flip_count,
-                    replace=False
-                )
-                self.population[i][indices] = 1 - self.population[i][indices]
-
             # Repair: forbid empty feature subsets
             if self.population[i].sum() == 0:
                 self.population[i][self.rng.integers(self.num_features)] = 1
