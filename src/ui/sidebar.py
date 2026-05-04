@@ -17,18 +17,29 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
         </style>
     """, unsafe_allow_html=True)
 
+    # Assuming 2048 features based on your dataset.
+    TOTAL_FEATURES = 2048
+
     if data_1 is not None and data_2 is not None:
+        # --- Algo 1 Calculations ---
         acc_val_1 = data_1['accuracy'].mean() if 'accuracy' in data_1 else 0.0
         acc1 = f"{acc_val_1 * 100:.1f}%" if acc_val_1 > 0 else "N/A"
 
         fit1 = f"{data_1['fitness'].mean() * 100:.1f}%"
-        feat1 = f"{data_1['n_features'].mean():.0f}"
 
+        feat_val_1 = data_1['n_features'].mean()
+        feat1 = f"{feat_val_1:.0f}"
+        red_1 = f"{((TOTAL_FEATURES - feat_val_1) / TOTAL_FEATURES) * 100:.1f}%"
+
+        # --- Algo 2 Calculations ---
         acc_val_2 = data_2['accuracy'].mean() if 'accuracy' in data_2 else 0.0
         acc2 = f"{acc_val_2 * 100:.1f}%" if acc_val_2 > 0 else "N/A"
 
         fit2 = f"{data_2['fitness'].mean() * 100:.1f}%"
-        feat2 = f"{data_2['n_features'].mean():.0f}"
+
+        feat_val_2 = data_2['n_features'].mean()
+        feat2 = f"{feat_val_2:.0f}"
+        red_2 = f"{((TOTAL_FEATURES - feat_val_2) / TOTAL_FEATURES) * 100:.1f}%"
 
         st.sidebar.markdown("### 📊 Live Results")
 
@@ -47,8 +58,8 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
 <div style="color: #ffffff; font-size: 17px; font-weight: bold;">{fit1}</div>
 </div>
 <div style="text-align: right;">
-<div style="color: #888; font-size: 10px;">FEATURES</div>
-<div style="color: #4b72fa; font-size: 17px; font-weight: bold;">{feat1}</div>
+<div style="color: #888; font-size: 10px;">FEATS (RED %)</div>
+<div style="color: #4b72fa; font-size: 17px; font-weight: bold;">{feat1} <span style="font-size: 12px; color: #a0a0a0; font-weight: normal;">({red_1})</span></div>
 </div>
 </div>
 <div style="height: 1px; background-color: #333333; margin-bottom: 12px;"></div>
@@ -64,8 +75,8 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
 <div style="color: #ffffff; font-size: 17px; font-weight: bold;">{fit2}</div>
 </div>
 <div style="text-align: right;">
-<div style="color: #888; font-size: 10px;">FEATURES</div>
-<div style="color: #7ee081; font-size: 17px; font-weight: bold;">{feat2}</div>
+<div style="color: #888; font-size: 10px;">FEATS (RED %)</div>
+<div style="color: #7ee081; font-size: 17px; font-weight: bold;">{feat2} <span style="font-size: 12px; color: #a0a0a0; font-weight: normal;">({red_2})</span></div>
 </div>
 </div>
 </div>

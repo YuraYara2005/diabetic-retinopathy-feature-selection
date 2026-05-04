@@ -121,7 +121,7 @@ def analyze_algorithm_runs(algo_name: str) -> dict:
     # --- Extract scalars ---
     fitness_scores = np.array([r["best_fitness"] for r in runs], dtype=float)
 
-    # NEW: Extract accuracy scores (defaults to 0.0 if loading an older run file)
+    # Extract accuracy scores (defaults to 0.0 if loading an older run file)
     accuracy_scores = np.array([r.get("best_accuracy", 0.0) for r in runs], dtype=float)
 
     feature_counts = np.array([r["features_selected"] for r in runs], dtype=int)
@@ -139,13 +139,31 @@ def analyze_algorithm_runs(algo_name: str) -> dict:
 
     histories = np.array(padded_histories, dtype=float)
 
+    # 💥 NEW: Dynamically check for pBest history files (Safe for GA)
+    pbest_histories_raw = []
+    for r in runs:
+        pbest_path = results_dir / f"pbest_run_{r['run_id']}.npy"
+        if pbest_path.exists():
+            pbest_histories_raw.append(np.load(pbest_path).tolist())
+
+    pbest_histories = None
+    if pbest_histories_raw:
+        padded_pbest = []
+        for h in pbest_histories_raw:
+            if len(h) < max_iters:
+                pad_value = h[-1] if h else 0.0
+                h = h + [pad_value] * (max_iters - len(h))
+            padded_pbest.append(h)
+        pbest_histories = np.array(padded_pbest, dtype=float)
+
     return {
         "algo_name": algo_name,
         "runs": runs,
         "fitness": fitness_scores,
-        "accuracy": accuracy_scores,  # NEW: Added to output dictionary
+        "accuracy": accuracy_scores,
         "n_features": feature_counts,
         "histories": histories,
+        "pbest_histories": pbest_histories # Will be None if it's a GA
     }
 
 
@@ -159,7 +177,7 @@ def print_statistical_summary(data: dict) -> None:
     """
     algo    = data["algo_name"]
     fitness = data["fitness"]
-    acc     = data.get("accuracy", np.zeros_like(fitness))  # NEW: Get accuracy array
+    acc     = data.get("accuracy", np.zeros_like(fitness))
     feats   = data["n_features"]
     n_runs  = len(data["runs"])
 
@@ -175,7 +193,7 @@ def print_statistical_summary(data: dict) -> None:
     print(f"    Min          :  {fitness.min():.6f}")
     print(f"    Max          :  {fitness.max():.6f}")
 
-    # ── Best Accuracy (NEW) ────────────────────────────────────────────────
+    # ── Best Accuracy ──────────────────────────────────────────────────────
     print("\n  [ Best Accuracy Score ]")
     print(f"    Mean  ± Std  :  {acc.mean()*100:.2f}%  ±  {acc.std(ddof=1)*100:.2f}%")
     print(f"    Min          :  {acc.min()*100:.2f}%")
@@ -197,9 +215,11 @@ def print_statistical_summary(data: dict) -> None:
 def plot_convergence(data: dict) -> None:
     """
     Plot the mean convergence curve with a ±1 standard deviation shaded band.
+    Includes pBest line if it is a PSO run.
     """
     algo      = data["algo_name"]
     histories = data["histories"]   # shape: (n_runs, n_generations)
+    pbest_histories = data.get("pbest_histories")
 
     # --- Compute per-generation statistics ----------------------------------
     mean_curve = histories.mean(axis=0)      # μ_g across runs at each generation
@@ -244,9 +264,22 @@ def plot_convergence(data: dict) -> None:
         mean_curve,
         color="#08519c",       # Dark blue
         linewidth=2.2,
-        label=f"Mean convergence (N = {len(histories)} runs)",
+        label=f"Mean gBest (N = {len(histories)} runs)",
         zorder=3,
     )
+
+    # 💥 NEW: Plot the pBest line if the data exists!
+    if pbest_histories is not None and len(pbest_histories) > 0:
+        pbest_mean = pbest_histories.mean(axis=0)
+        ax.plot(
+            generations,
+            pbest_mean,
+            color="#ff7f0e",
+            linestyle="--",
+            linewidth=2.2,
+            label=f"Mean pBest",
+            zorder=3
+        )
 
     # --- Mark the final mean fitness ----------------------------------------
     final_fitness = mean_curve[-1]
@@ -270,7 +303,7 @@ def plot_convergence(data: dict) -> None:
 
     # --- Labels, title, legend ----------------------------------------------
     ax.set_xlabel("Generation", fontsize=12, labelpad=8)
-    ax.set_ylabel("Best Fitness", fontsize=12, labelpad=8)
+    ax.set_ylabel("Fitness Score", fontsize=12, labelpad=8)
     ax.set_title(
         f"{algo} – Convergence Curve over {len(histories)} Independent Runs\n"
         f"Diabetic Retinopathy Feature Selection",
@@ -290,7 +323,7 @@ def plot_convergence(data: dict) -> None:
     script_dir  = Path(__file__).resolve().parent
     output_path = script_dir / "results" / algo / f"{algo}_convergence.png"
 
-    # NEW: Ensure the folder exists before saving the plot to prevent crashes
+    # Ensure the folder exists before saving the plot to prevent crashes
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     fig.savefig(output_path, dpi=150, bbox_inches="tight")

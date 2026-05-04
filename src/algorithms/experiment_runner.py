@@ -1,4 +1,5 @@
 import time
+import os
 import numpy as np
 import yaml
 from pathlib import Path
@@ -245,6 +246,12 @@ def run_experiments(
             algo_name, run_id, seed,
             best_fitness, best_subset, history, config, best_accuracy
         )
+
+        # 💥 NEW SAFE INJECTION: Save pBest locally without breaking the JSON pipeline!
+        if hasattr(optimizer, "pbest_history"):
+            save_dir = base_dir / "results" / algo_name
+            save_dir.mkdir(parents=True, exist_ok=True)
+            np.save(save_dir / f"pbest_run_{run_id}.npy", optimizer.pbest_history)
 
         if progress_callback is not None:
             progress_callback((i + 1) / num_runs)

@@ -7,10 +7,10 @@ class BinaryPSO(BaseOptimizer):
     """
     Canonical Global-best Binary PSO for feature selection.
 
-    ULTRA-FAST VERSION:
+    ULTRA-FAST VERSION (BALANCED FEATURE REDUCTION):
     1. Delta Evaluation (only trains models for particles that change).
-    2. Sparse Initialization (starts at 5% features instead of 40%).
-    3. Negative Velocity Bias (prevents feature explosion).
+    2. Balanced Initialization (starts at 25% features to target the 400-600 range).
+    3. Mild Asymmetric Sigmoid (-0.15 penalty to prevent random flipping and boost speed).
     """
 
     def __init__(
@@ -45,21 +45,23 @@ class BinaryPSO(BaseOptimizer):
         self.gbest_position = None
         self.current_iter = 0
 
+        # Empty list to quietly store the pBest history for the charts
+        self.pbest_history = []
+
     def initialize_population(self) -> np.ndarray:
-        # 💥 FIX 1: Sparse Initialization. Start with ~5% features (like GA does)
-        # Instead of 40%, which forces the classifier to train on 800+ features!
+        # 💥 THE COUNT FIX: Start at 25% (roughly 512 features out of 2048)
+        # This ensures the algorithm hovers naturally in your desired 400+ range.
         self.population = (
-                self.rng.random(size=(self.pop_size, self.num_features)) < 0.05
+                self.rng.random(size=(self.pop_size, self.num_features)) < 0.25
         ).astype(int)
 
         zero_rows = np.where(self.population.sum(axis=1) == 0)[0]
         for row in zero_rows:
             self.population[row, self.rng.integers(self.num_features)] = 1
 
-        # 💥 FIX 2: Negative Velocity Bias. Keeps probabilities low early on
-        # so the swarm explores sparse regions first to save computational time.
+        # 💥 THE VELOCITY FIX: Start velocities neutral to slightly negative
         self.velocities = self.rng.uniform(
-            -4, -1,
+            -2, 1,
             size=(self.pop_size, self.num_features)
         )
 
@@ -85,11 +87,15 @@ class BinaryPSO(BaseOptimizer):
 
     @staticmethod
     def sigmoid(x: np.ndarray) -> np.ndarray:
-        return np.where(
+        sig = np.where(
             x >= 0,
             1.0 / (1.0 + np.exp(-x)),
             np.exp(x) / (1.0 + np.exp(x))
         )
+        # 💥 THE SPEED + COUNT BALANCE: -0.15 is mild.
+        # It pushes useless features to 0 (triggering Delta Eval speed hack)
+        # but is not aggressive enough to crush your total feature count below 400.
+        return np.clip(sig - 0.15, 0.0, 1.0)
 
     def _current_inertia(self) -> float:
         progress = self.current_iter / max(self.max_iterations - 1, 1)
@@ -114,8 +120,7 @@ class BinaryPSO(BaseOptimizer):
         for row in zero_rows:
             self.population[row, self.rng.integers(self.num_features)] = 1
 
-        # 💥 FIX 3: Delta Evaluation!
-        # Only train models for particles that ACTUALLY changed bits!
+        # Delta Evaluation: Only train models for particles that ACTUALLY changed bits!
         changed_mask = (self.population != self.prev_population).any(axis=1)
         changed_idx = np.where(changed_mask)[0]
 
@@ -149,6 +154,9 @@ class BinaryPSO(BaseOptimizer):
             current_gbest_feats = int(self.gbest_position.sum())
             avg_pbest_fitness = np.mean(self.pbest_scores)
             current_w = self._current_inertia()
+
+            # Save it to our custom history list for visualizations
+            self.pbest_history.append(float(avg_pbest_fitness))
 
             print(
                 f"Iter {iter_num + 1:03d}/{self.max_iterations} | "
