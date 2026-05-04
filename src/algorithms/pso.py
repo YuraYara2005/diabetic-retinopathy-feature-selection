@@ -56,7 +56,7 @@ class BinaryPSO(BaseOptimizer):
         # --- Binary positions: start ~20% selected on average ---
         # We use a low probability (0.2) so initial subsets are small
         self.population = (
-            self.rng.random(size=(self.pop_size, self.num_features)) < 0.2
+            self.rng.random(size=(self.pop_size, self.num_features)) < 0.4
         ).astype(int)
 
         # Guarantee no all-zero particle
@@ -67,7 +67,7 @@ class BinaryPSO(BaseOptimizer):
         # --- Velocities: biased negative so sigmoid ≈ 0.1-0.27 ---
         # This prevents the "stuck at 50% features" problem in high dimensions
         self.velocities = self.rng.uniform(
-            -6, -2,
+            -2, 2,
             size=(self.pop_size, self.num_features)
         )
 
@@ -108,7 +108,8 @@ class BinaryPSO(BaseOptimizer):
         Linear inertia weight decay (Shi & Eberhart, 1998 canonical PSO).
         Starts at w_max (exploration) and decays to w_min (exploitation).
         """
-        progress = self.current_iter / max(self.max_iterations - 1, 1)
+        #progress = self.current_iter / max(self.max_iterations - 1, 1)
+        progress = (self.current_iter / self.max_iterations) ** 0.5
         return self.w_max - (self.w_max - self.w_min) * progress
 
     # ------------------------------------------------------------------ #
@@ -138,6 +139,18 @@ class BinaryPSO(BaseOptimizer):
             # Binarise: probability of flipping each bit to 1
             probs = self.sigmoid(self.velocities[i])
             self.population[i] = (self.rng.random(self.num_features) < probs).astype(int)
+
+            #if self.rng.random() < 0.2:
+             #   idx = self.rng.integers(self.num_features)
+              #  self.population[i][idx] = 1 - self.population[i][idx]
+            if self.rng.random() < 0.1:
+                flip_count = max(1, int(0.01 * self.num_features))  # flip 1% features
+                indices = self.rng.choice(
+                    self.num_features,
+                    size=flip_count,
+                    replace=False
+                )
+                self.population[i][indices] = 1 - self.population[i][indices]
 
             # Repair: forbid empty feature subsets
             if self.population[i].sum() == 0:
