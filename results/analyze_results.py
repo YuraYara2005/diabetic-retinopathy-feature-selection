@@ -120,6 +120,10 @@ def analyze_algorithm_runs(algo_name: str) -> dict:
 
     # --- Extract scalars ---
     fitness_scores = np.array([r["best_fitness"] for r in runs], dtype=float)
+
+    # NEW: Extract accuracy scores (defaults to 0.0 if loading an older run file)
+    accuracy_scores = np.array([r.get("best_accuracy", 0.0) for r in runs], dtype=float)
+
     feature_counts = np.array([r["features_selected"] for r in runs], dtype=int)
 
     # --- Extract and align convergence histories ---
@@ -139,6 +143,7 @@ def analyze_algorithm_runs(algo_name: str) -> dict:
         "algo_name": algo_name,
         "runs": runs,
         "fitness": fitness_scores,
+        "accuracy": accuracy_scores,  # NEW: Added to output dictionary
         "n_features": feature_counts,
         "histories": histories,
     }
@@ -151,24 +156,10 @@ def analyze_algorithm_runs(algo_name: str) -> dict:
 def print_statistical_summary(data: dict) -> None:
     """
     Print a formatted terminal report of key statistics across all runs.
-
-    We report:
-      - Mean ± Standard Deviation  (central tendency + spread)
-      - Minimum and Maximum        (best and worst case)
-
-    for both ``best_fitness`` and ``features_selected``.
-
-    The standard deviation (σ) tells us how consistent the algorithm is.
-    A small σ means the algorithm reliably converges to a similar solution
-    regardless of the random seed — which is exactly what we want.
-
-    Parameters
-    ----------
-    data : dict
-        Output dictionary from ``analyze_algorithm_runs``.
     """
     algo    = data["algo_name"]
     fitness = data["fitness"]
+    acc     = data.get("accuracy", np.zeros_like(fitness))  # NEW: Get accuracy array
     feats   = data["n_features"]
     n_runs  = len(data["runs"])
 
@@ -179,19 +170,18 @@ def print_statistical_summary(data: dict) -> None:
     print(sep)
 
     # ── Best Fitness ───────────────────────────────────────────────────────
-    # Fitness here is the value our optimizer maximises (e.g. classification
-    # accuracy penalised by subset size). Higher is better.
     print("\n  [ Best Fitness Score ]")
     print(f"    Mean  ± Std  :  {fitness.mean():.6f}  ±  {fitness.std(ddof=1):.6f}")
-    #                                                           ^^^^^^^^
-    # ddof=1 gives the sample standard deviation (Bessel's correction),
-    # which is the unbiased estimator when our 30 runs are a sample from
-    # a theoretical population of all possible runs.
     print(f"    Min          :  {fitness.min():.6f}")
     print(f"    Max          :  {fitness.max():.6f}")
 
+    # ── Best Accuracy (NEW) ────────────────────────────────────────────────
+    print("\n  [ Best Accuracy Score ]")
+    print(f"    Mean  ± Std  :  {acc.mean()*100:.2f}%  ±  {acc.std(ddof=1)*100:.2f}%")
+    print(f"    Min          :  {acc.min()*100:.2f}%")
+    print(f"    Max          :  {acc.max()*100:.2f}%")
+
     # ── Features Selected ──────────────────────────────────────────────────
-    # Fewer features → simpler model → better generalisation (Occam's razor).
     print("\n  [ Features Selected ]")
     print(f"    Mean  ± Std  :  {feats.mean():.2f}  ±  {feats.std(ddof=1):.2f}")
     print(f"    Min          :  {feats.min()}")
@@ -207,24 +197,6 @@ def print_statistical_summary(data: dict) -> None:
 def plot_convergence(data: dict) -> None:
     """
     Plot the mean convergence curve with a ±1 standard deviation shaded band.
-
-    Why do we plot convergence?
-    ----------------------------
-    A single fitness score tells us *where* the algorithm ended up. A
-    convergence curve tells us *how fast* and *how smoothly* it got there.
-    The shaded ±1 σ band around the mean visualises the variance across runs:
-
-      - A thin band → the algorithm is deterministic and stable.
-      - A wide band → the algorithm is sensitive to initialisation (the seed).
-
-    Mathematically, at each generation g, we plot:
-      - Mean:  μ_g  = (1/N) Σ  history[i][g]
-      - Band:  μ_g ± σ_g,  where σ_g = std( history[:, g] )
-
-    Parameters
-    ----------
-    data : dict
-        Output dictionary from ``analyze_algorithm_runs``.
     """
     algo      = data["algo_name"]
     histories = data["histories"]   # shape: (n_runs, n_generations)
@@ -245,8 +217,6 @@ def plot_convergence(data: dict) -> None:
     })
 
     # --- Plot the individual run curves (very faint, for context) -----------
-    # This layer shows "raw data" — the professor can see that the mean line
-    # genuinely summarises many individual runs underneath it.
     for run_history in histories:
         ax.plot(
             generations,
@@ -258,8 +228,6 @@ def plot_convergence(data: dict) -> None:
         )
 
     # --- Plot the ±1 σ shaded band ------------------------------------------
-    # ax.fill_between fills the area between (mean - std) and (mean + std).
-    # This is the key visual showing statistical variance across runs.
     ax.fill_between(
         generations,
         mean_curve - std_curve,    # Lower bound: μ - σ
@@ -271,7 +239,6 @@ def plot_convergence(data: dict) -> None:
     )
 
     # --- Plot the mean convergence line -------------------------------------
-    # This is the primary curve — the average behaviour over all 30 runs.
     ax.plot(
         generations,
         mean_curve,
@@ -320,9 +287,12 @@ def plot_convergence(data: dict) -> None:
     plt.tight_layout()
 
     # --- Save and display ---------------------------------------------------
-    # Save next to the JSON files so all outputs for an algorithm stay together.
     script_dir  = Path(__file__).resolve().parent
     output_path = script_dir / "results" / algo / f"{algo}_convergence.png"
+
+    # NEW: Ensure the folder exists before saving the plot to prevent crashes
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
 
     print(f"  Convergence plot saved → {output_path}")

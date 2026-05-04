@@ -18,12 +18,12 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
     """, unsafe_allow_html=True)
 
     if data_1 is not None and data_2 is not None:
-        # Safely pull accuracy if your logger saves it, otherwise show N/A
-        acc1 = f"{data_1['accuracy'].mean() * 100:.1f}%" if 'accuracy' in data_1.columns else "N/A"
+        # FIX: Check if 'accuracy' is in the dictionary keys directly (removed .columns)
+        acc1 = f"{data_1['accuracy'].mean() * 100:.1f}%" if 'accuracy' in data_1 else "N/A"
         fit1 = f"{data_1['fitness'].mean() * 100:.1f}%"
         feat1 = f"{data_1['n_features'].mean():.0f}"
 
-        acc2 = f"{data_2['accuracy'].mean() * 100:.1f}%" if 'accuracy' in data_2.columns else "N/A"
+        acc2 = f"{data_2['accuracy'].mean() * 100:.1f}%" if 'accuracy' in data_2 else "N/A"
         fit2 = f"{data_2['fitness'].mean() * 100:.1f}%"
         feat2 = f"{data_2['n_features'].mean():.0f}"
 
@@ -73,10 +73,8 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
     st.sidebar.header("🎛️ Primary Controls")
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        # Removed ACO
         algo_1 = st.selectbox("Algorithm A", ["dummy", "GA", "PSO"], index=1)
     with col2:
-        # Removed ACO
         algo_2 = st.selectbox("Algorithm B", ["dummy", "GA", "PSO"], index=2)
 
     classifier = st.sidebar.pills("Classifier Engine", ["KNN", "Random Forest", "SVM"], default="Random Forest")
@@ -84,13 +82,16 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
     pop_size = st.sidebar.slider("Population Size", 10, 100, 50, 10)
     generations = st.sidebar.slider("Generations", 10, 200, 100, 10)
 
-    # NEW: Run times slider
     num_runs = st.sidebar.slider("Independent Runs", 1, 30, 3, 1,
                                  help="Set to 1 or 3 for fast UI testing. Use 30 for final statistics.")
+
+    # FIX: Re-added the Data Subsample slider to prevent unpacking errors in app.py
+    data_subset = st.sidebar.slider("Data Subsample (%)", 10, 100, 100, 10,
+                                    help="Use 20-30% for blazing fast testing. Use 100% for final academic runs.")
 
     st.sidebar.markdown("<br>", unsafe_allow_html=True)
     btn_placeholder = st.sidebar.empty()
     run_clicked = btn_placeholder.button("🚀 Run Comparison", use_container_width=True)
 
-    # Returning 8 variables to perfectly match app.py
-    return algo_1, algo_2, classifier, pop_size, generations, num_runs, run_clicked, btn_placeholder
+    # FIX: Returning all 9 variables properly
+    return algo_1, algo_2, classifier, pop_size, generations, num_runs, data_subset, run_clicked, btn_placeholder

@@ -49,7 +49,8 @@ def run_experiments(
         classifier_override: Optional[str] = None,
         pop_override: Optional[int] = None,
         gen_override: Optional[int] = None,
-        runs_override: Optional[int] = None,  # <-- Added runs_override
+        runs_override: Optional[int] = None,
+        subset_override: Optional[int] = None,
         progress_callback: Optional[Callable[[float], None]] = None,
 ):
     """
@@ -96,7 +97,6 @@ def run_experiments(
         except FileNotFoundError:
             print("  [!] pso_config.yaml not found. Using defaults.")
 
-        # Prioritize UI -> PSO Config -> Master Config
         if pop_override is None:
             pop_size = algo_config.get("swarm_size", pop_size)
         if gen_override is None:
@@ -112,7 +112,7 @@ def run_experiments(
             with open(base_dir / "config" / "ga_config.yaml", "r") as f:
                 algo_config = yaml.safe_load(f) or {}
         except FileNotFoundError:
-            print("  [!] ga.yaml not found. Using defaults.")
+            print("  [!] ga_config.yaml not found. Using defaults.")
 
         # Inject our UI variables directly into the GA's config dictionary
         algo_config["pop_size"] = pop_size
@@ -128,6 +128,17 @@ def run_experiments(
             y_train = np.load(base_dir / data_cfg["y_train_path"])
             X_val = np.load(base_dir / data_cfg["x_val_path"])
             y_val = np.load(base_dir / data_cfg["y_val_path"])
+
+            # 💥 THE SPEED HACK: Subsample the training data based on the UI Slider 💥
+            subset_pct = subset_override if subset_override is not None else 100
+            if subset_pct < 100:
+                sample_size = int(len(X_train) * (subset_pct / 100.0))
+                np.random.seed(42) # Keep it reproducible across algorithms
+                idx = np.random.choice(len(X_train), sample_size, replace=False)
+                X_train = X_train[idx]
+                y_train = y_train[idx]
+                print(f"  [⚡] Fast Mode: Using {subset_pct}% of training data ({sample_size} samples).")
+
         except FileNotFoundError as e:
             raise FileNotFoundError(
                 f"Dataset file not found: {e.filename}\n"
@@ -192,11 +203,21 @@ def run_experiments(
 
         best_subset, best_fitness, history = optimizer.run()
 
-        print(f"fitness={best_fitness:.4f}  features={int(best_subset.sum())}")
+        # 💥 NEW: Recalculate raw accuracy for the absolute best subset before saving 💥
+        if needs_real_data and int(best_subset.sum()) > 0:
+            selected_idx = np.where(best_subset == 1)[0]
+            best_accuracy = evaluator.model.train_and_evaluate(
+                X_train[:, selected_idx], y_train,
+                X_val[:, selected_idx], y_val
+            )
+        else:
+            best_accuracy = best_fitness if not needs_real_data else 0.0
+
+        print(f"fitness={best_fitness:.4f}  accuracy={best_accuracy:.4f}  features={int(best_subset.sum())}")
 
         save_run_results(
             algo_name, run_id, seed,
-            best_fitness, best_subset, history, config
+            best_fitness, best_subset, history, config, best_accuracy  # <-- Passing accuracy to logger
         )
 
         if progress_callback is not None:
