@@ -31,5 +31,5 @@ venv/
 .venv/
 env/
 
-# Your results folder (optional, if you don't want to upload huge JSONs)
-# results/dummy/
+# Results folder
+results/dummy/
