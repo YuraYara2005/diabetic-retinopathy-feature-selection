@@ -49,6 +49,7 @@ def run_experiments(
         classifier_override: Optional[str] = None,
         pop_override: Optional[int] = None,
         gen_override: Optional[int] = None,
+        runs_override: Optional[int] = None,  # <-- Added runs_override
         progress_callback: Optional[Callable[[float], None]] = None,
 ):
     """
@@ -66,7 +67,8 @@ def run_experiments(
     exp_cfg = config["experiment"]
     data_cfg = config["dataset"]
 
-    num_runs = exp_cfg["num_runs"]
+    # Use the UI slider if provided, otherwise fallback to YAML
+    num_runs = runs_override or exp_cfg["num_runs"]
     master_seed = exp_cfg["master_seed"]
     alpha = exp_cfg["alpha"]
     model_name = classifier_override or exp_cfg["classifier"]
@@ -107,7 +109,7 @@ def run_experiments(
 
         # Load GA config
         try:
-            with open(base_dir / "config" / "ga.yaml", "r") as f:
+            with open(base_dir / "config" / "ga_config.yaml", "r") as f:
                 algo_config = yaml.safe_load(f) or {}
         except FileNotFoundError:
             print("  [!] ga.yaml not found. Using defaults.")
@@ -159,14 +161,13 @@ def run_experiments(
         if needs_real_data:
             evaluator.cache.clear()
 
-        # 🔥 THE FIX: Dynamic Instantiation 🔥
-        # Each algorithm gets strictly what its __init__ asks for
+        # Dynamic Instantiation: Each algorithm gets strictly what its __init__ asks for
         if algo_name == "ga":
             optimizer = OptimizerClass(
                 num_features=num_features,
                 max_iterations=max_iterations,
                 fitness_func=fitness_func,
-                config=algo_config,  # GA wants the dictionary
+                config=algo_config,
                 seed=seed,
             )
         elif algo_name == "pso":
@@ -174,7 +175,7 @@ def run_experiments(
                 num_features=num_features,
                 max_iterations=max_iterations,
                 fitness_func=fitness_func,
-                pop_size=pop_size,  # PSO wants the integer
+                pop_size=pop_size,
                 c1=algo_config.get("c1", 1.5),
                 c2=algo_config.get("c2", 1.5),
                 w=algo_config.get("w", 0.7),

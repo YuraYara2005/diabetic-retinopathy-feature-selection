@@ -59,6 +59,7 @@ st.caption("Evolutionary Algorithm Comparison — Diabetic Retinopathy Dataset")
     algo_1, algo_2,
     classifier_ui,
     pop_size, generations,
+    num_runs,            # <-- Unpacking num_runs from sidebar
     run_clicked,
     btn_placeholder,
 ) = render_sidebar(
@@ -99,8 +100,8 @@ if run_clicked:
 
     def update_progress_1(fraction: float):
         pct  = int(fraction * 100)
-        runs_done = round(fraction * 30)
-        progress_bar_1.progress(pct, text=f"Run {runs_done}/30 complete")
+        runs_done = round(fraction * num_runs)  # <-- Fixed hardcoded 30
+        progress_bar_1.progress(pct, text=f"Run {runs_done}/{num_runs} complete")
 
     try:
         run_experiments(
@@ -109,6 +110,7 @@ if run_clicked:
             classifier_override = classifier_backend,
             pop_override        = pop_size,
             gen_override        = generations,
+            runs_override       = num_runs,     # <-- Added injection
             progress_callback   = update_progress_1,
         )
         progress_bar_1.progress(100, text=f"✅ {st.session_state.last_algo_1} complete!")
@@ -129,8 +131,8 @@ if run_clicked:
 
         def update_progress_2(fraction: float):
             pct = int(fraction * 100)
-            runs_done = round(fraction * 30)
-            progress_bar_2.progress(pct, text=f"Run {runs_done}/30 complete")
+            runs_done = round(fraction * num_runs) # <-- Fixed hardcoded 30
+            progress_bar_2.progress(pct, text=f"Run {runs_done}/{num_runs} complete")
 
         try:
             run_experiments(
@@ -139,6 +141,7 @@ if run_clicked:
                 classifier_override = classifier_backend,
                 pop_override        = pop_size,
                 gen_override        = generations,
+                runs_override       = num_runs,    # <-- Added injection
                 progress_callback   = update_progress_2,
             )
             progress_bar_2.progress(100, text=f"✅ {st.session_state.last_algo_2} complete!")
@@ -184,7 +187,7 @@ if st.session_state.has_run:
 else:
     st.info("👈 Select two algorithms in the sidebar and click **Run Comparison** to begin.")
     st.markdown("""
-    ### 🚀 Quick Start
+    ### Quick Start
     - **Dummy vs Dummy** — tests the full UI pipeline instantly, no dataset needed
     - **Dummy vs PSO** — tests PSO with real data while Dummy provides a baseline  
     - **PSO vs GA** — full comparison once both algorithms and the dataset are ready
