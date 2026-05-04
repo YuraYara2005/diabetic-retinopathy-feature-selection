@@ -39,7 +39,7 @@ class RandomForestModel(BaseModel):
         self.model = RandomForestClassifier(
             n_estimators=50,
             max_depth=10,
-            n_jobs=-1,  # Uses all cores for Random Forest natively!
+            n_jobs=1,  # Uses all cores for Random Forest natively!
             random_state=42
         )
 

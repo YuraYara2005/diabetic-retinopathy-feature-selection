@@ -39,11 +39,28 @@ MODEL_MAP = {
     "SVM":           "svm",
 }
 
-# ── Algorithm display name mapping ──────────────────────────────────────────
+# 💥 TRANSLATE UI DROPDOWNS TO SAFE FOLDER NAMES
+ALGO_MAP = {
+    "Dummy": "dummy",
+    "PSO (Linear Decay)": "pso_linear",
+    "PSO (High Inertia)": "pso_high",
+    "PSO (Low Inertia)": "pso_low",
+    "GA (Tournament + Uniform)": "ga_tourn_uni",
+    "GA (Roulette + One-Point)": "ga_roul_one",
+    "GA (Tournament + One-Point)": "ga_tourn_one",
+    "GA (Roulette + Uniform)": "ga_roul_uni"
+}
+
+# 💥 SHORT NAMES FOR THE HTML METRICS DISPLAY AND CHARTS
 ALGO_DISPLAY = {
     "dummy": "Dummy",
-    "pso":   "PSO",
-    "ga":    "GA",
+    "pso_linear": "PSO (Linear)",
+    "pso_high": "PSO (High)",
+    "pso_low": "PSO (Low)",
+    "ga_tourn_uni": "GA (Tourn+Uni)",
+    "ga_roul_one":  "GA (Roul+One)",
+    "ga_tourn_one": "GA (Tourn+One)",
+    "ga_roul_uni":  "GA (Roul+Uni)",
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -55,13 +72,12 @@ st.caption("Evolutionary Algorithm Comparison — Diabetic Retinopathy Dataset")
 # ────────────────────────────────────────────────────────────────────────────
 # SIDEBAR
 # ────────────────────────────────────────────────────────────────────────────
-# THE FIX: Catching exactly 9 variables from the updated sidebar
 (
     algo_1, algo_2,
     classifier_ui,
     pop_size, generations,
     num_runs,
-    data_subset,         # <-- The 9th variable we added!
+    data_subset,
     run_clicked,
     btn_placeholder,
 ) = render_sidebar(
@@ -77,12 +93,15 @@ st.caption("Evolutionary Algorithm Comparison — Diabetic Retinopathy Dataset")
 if run_clicked:
     classifier_backend = MODEL_MAP.get(classifier_ui, "knn")
 
-    # Normalize algo names to lowercase backend keys
-    algo_1_key = algo_1.lower().strip()
-    algo_2_key = algo_2.lower().strip()
+    # Safely convert UI string to the backend key using the map
+    algo_1_key = ALGO_MAP.get(algo_1, "dummy")
+    algo_2_key = ALGO_MAP.get(algo_2, "dummy")
 
-    # Validate — catch unknown algorithms before they crash the runner
-    valid_algos = {"dummy", "pso", "ga"}
+    # Validate against all allowed variations
+    valid_algos = {
+        "dummy", "pso_linear", "pso_high", "pso_low",
+        "ga_tourn_uni", "ga_roul_one", "ga_tourn_one", "ga_roul_uni"
+    }
     if algo_1_key not in valid_algos or algo_2_key not in valid_algos:
         st.error(f"Unknown algorithm selected. Choose from: {', '.join(valid_algos)}")
         st.stop()
@@ -113,7 +132,7 @@ if run_clicked:
             pop_override        = pop_size,
             gen_override        = generations,
             runs_override       = num_runs,
-            subset_override     = data_subset,    # <-- Passing it to the runner!
+            subset_override     = data_subset,
             progress_callback   = update_progress_1,
         )
         progress_bar_1.progress(100, text=f"✅ {st.session_state.last_algo_1} complete!")
@@ -145,7 +164,7 @@ if run_clicked:
                 pop_override        = pop_size,
                 gen_override        = generations,
                 runs_override       = num_runs,
-                subset_override     = data_subset,    # <-- Passing it to the runner!
+                subset_override     = data_subset,
                 progress_callback   = update_progress_2,
             )
             progress_bar_2.progress(100, text=f"✅ {st.session_state.last_algo_2} complete!")
@@ -193,6 +212,5 @@ else:
     st.markdown("""
     ### 🚀 Quick Start
     - **Dummy vs Dummy** — tests the full UI pipeline instantly, no dataset needed
-    - **Dummy vs PSO** — tests PSO with real data while Dummy provides a baseline  
-    - **PSO vs GA** — full comparison once both algorithms and the dataset are ready
+    - **PSO (Linear) vs GA (Tourn+Uni)** — full comparison once both algorithms and the dataset are ready
     """)
