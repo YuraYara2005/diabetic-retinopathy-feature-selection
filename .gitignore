@@ -17,3 +17,19 @@ env/
 Thumbs.db
 # Ignore JetBrains IDE files
 .idea/
+
+
+# PyCharm/IntelliJ files
+*.iml
+
+# Python compilation files
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Your results folder (optional, if you don't want to upload huge JSONs)
+# results/dummy/
