@@ -2,9 +2,6 @@ import warnings
 # This stops Intel from spamming your terminal with the yellow Threading warnings
 warnings.filterwarnings("ignore", message=".*'Threading' parallel backend is not supported.*")
 
-from sklearnex import patch_sklearn
-patch_sklearn()
-
 import numpy as np
 from abc import ABC, abstractmethod
 from sklearn.svm import SVC
@@ -39,7 +36,7 @@ class RandomForestModel(BaseModel):
         self.model = RandomForestClassifier(
             n_estimators=50,
             max_depth=10,
-            n_jobs=-1,  # Uses all cores for Random Forest natively!
+            n_jobs=1,  # Uses all cores for Random Forest natively!
             random_state=42
         )
 
