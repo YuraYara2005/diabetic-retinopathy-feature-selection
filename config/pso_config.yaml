@@ -1,9 +1,20 @@
+# config/pso_config.yaml
+# Tuned for high-dimensional binary feature selection (512–2048 features)
+# Based on canonical PSO (Shi & Eberhart, 1998)
+
 pop_size: 30
-max_iterations: 50
+max_iterations: 100
 
-w: 0.7
-c1: 1.5
-c2: 1.5
+# Inertia weight — decays linearly from w_max to w_min over all iterations
+# High w_max = explore early, low w_min = exploit late
+w_max: 0.9
+w_min: 0.4
 
-velocity_min: -4
-velocity_max: 4
+# Acceleration constants — kept low for high-dimensional spaces
+# High c1/c2 in 2048 dimensions causes velocity explosion
+c1: 0.5    # cognitive (personal best attraction)
+c2: 0.3    # social    (global best attraction)
+
+# Velocity clamp — wider range gives sigmoid more room to work
+velocity_min: -6.0
+velocity_max: 6.0

@@ -182,14 +182,18 @@ def run_experiments(
                 seed=seed,
             )
         elif algo_name == "pso":
+            # 💥 ZERO TRACES OF 'w' REMAIN IN THIS BLOCK 💥
             optimizer = OptimizerClass(
                 num_features=num_features,
                 max_iterations=max_iterations,
                 fitness_func=fitness_func,
                 pop_size=pop_size,
-                c1=algo_config.get("c1", 1.5),
-                c2=algo_config.get("c2", 1.5),
-                w=algo_config.get("w", 0.7),
+                c1=algo_config.get("c1", 0.5),
+                c2=algo_config.get("c2", 0.3),
+                w_max=algo_config.get("w_max", 0.9),
+                w_min=algo_config.get("w_min", 0.4),
+                v_min=algo_config.get("velocity_min", -6.0),
+                v_max=algo_config.get("velocity_max", 6.0),
                 seed=seed,
             )
         else:  # dummy
@@ -217,7 +221,7 @@ def run_experiments(
 
         save_run_results(
             algo_name, run_id, seed,
-            best_fitness, best_subset, history, config, best_accuracy  # <-- Passing accuracy to logger
+            best_fitness, best_subset, history, config, best_accuracy
         )
 
         if progress_callback is not None:
