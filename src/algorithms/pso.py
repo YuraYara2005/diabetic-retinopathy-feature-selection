@@ -6,8 +6,6 @@ from joblib import Parallel, delayed
 class BinaryPSO(BaseOptimizer):
     """
     Canonical Global-best Binary PSO for feature selection.
-
-    ULTRA-FAST VERSION (BALANCED FEATURE REDUCTION):
     1. Delta Evaluation (only trains models for particles that change).
     2. Balanced Initialization (starts at 25% features to target the 400-600 range).
     3. Mild Asymmetric Sigmoid (-0.15 penalty to prevent random flipping and boost speed).
@@ -44,13 +42,12 @@ class BinaryPSO(BaseOptimizer):
         self.pbest_scores = None
         self.gbest_position = None
         self.current_iter = 0
-
         # Empty list to quietly store the pBest history for the charts
         self.pbest_history = []
 
     def initialize_population(self) -> np.ndarray:
-        # 💥 THE COUNT FIX: Start at 25% (roughly 512 features out of 2048)
-        # This ensures the algorithm hovers naturally in your desired 400+ range.
+        # Start at 25% (roughly 512 features out of 2048)
+
         self.population = (
                 self.rng.random(size=(self.pop_size, self.num_features)) < 0.25
         ).astype(int)
@@ -59,7 +56,7 @@ class BinaryPSO(BaseOptimizer):
         for row in zero_rows:
             self.population[row, self.rng.integers(self.num_features)] = 1
 
-        # 💥 THE VELOCITY FIX: Start velocities neutral to slightly negative
+        #  Start velocities neutral to slightly negative
         self.velocities = self.rng.uniform(
             -2, 1,
             size=(self.pop_size, self.num_features)
@@ -92,9 +89,7 @@ class BinaryPSO(BaseOptimizer):
             1.0 / (1.0 + np.exp(-x)),
             np.exp(x) / (1.0 + np.exp(x))
         )
-        # 💥 THE SPEED + COUNT BALANCE: -0.15 is mild.
-        # It pushes useless features to 0 (triggering Delta Eval speed hack)
-        # but is not aggressive enough to crush your total feature count below 400.
+
         return np.clip(sig - 0.15, 0.0, 1.0)
 
     def _current_inertia(self) -> float:

@@ -342,7 +342,7 @@ if __name__ == "__main__":
     # Change ALGO_NAME to analyse a different algorithm's results.
     # Valid options (once experiments are run): "GA", "PSO", "ACO", "dummy"
     # -------------------------------------------------------------------------
-    ALGO_NAME = "dummy"
+    ALGO_NAME = "pso_low"
 
     print(f"\nAnalysing results for: {ALGO_NAME}")
     print("-" * 40)

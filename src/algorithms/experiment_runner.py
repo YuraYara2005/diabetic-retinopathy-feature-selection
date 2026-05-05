@@ -86,7 +86,7 @@ def run_experiments(
         OptimizerClass = DummyOptimizer
         needs_real_data = False
 
-    # 💥 INERTIA DYNAMIC PSO INJECTION
+
     elif algo_name.startswith("pso"):
         from src.algorithms.pso import BinaryPSO
         OptimizerClass = BinaryPSO
@@ -153,7 +153,7 @@ def run_experiments(
             X_val = np.load(base_dir / data_cfg["x_val_path"])
             y_val = np.load(base_dir / data_cfg["y_val_path"])
 
-            # 💥 THE SPEED HACK: Subsample the training data based on the UI Slider 💥
+
             subset_pct = subset_override if subset_override is not None else 100
             if subset_pct < 100:
                 sample_size = int(len(X_train) * (subset_pct / 100.0))
@@ -196,7 +196,7 @@ def run_experiments(
         if needs_real_data:
             evaluator.cache.clear()
 
-        # Dynamic Instantiation: Each algorithm gets strictly what its __init__ asks for
+
         if algo_name.startswith("ga"):
             optimizer = OptimizerClass(
                 num_features=num_features,
@@ -230,7 +230,7 @@ def run_experiments(
 
         best_subset, best_fitness, history = optimizer.run()
 
-        # Recalculate raw accuracy for the absolute best subset before saving
+
         if needs_real_data and int(best_subset.sum()) > 0:
             selected_idx = np.where(best_subset == 1)[0]
             best_accuracy = evaluator.model.train_and_evaluate(
@@ -247,7 +247,7 @@ def run_experiments(
             best_fitness, best_subset, history, config, best_accuracy
         )
 
-        # 💥 NEW SAFE INJECTION: Save pBest locally without breaking the JSON pipeline!
+
         if hasattr(optimizer, "pbest_history"):
             save_dir = base_dir / "results" / algo_name
             save_dir.mkdir(parents=True, exist_ok=True)

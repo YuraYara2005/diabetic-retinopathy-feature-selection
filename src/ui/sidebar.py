@@ -85,7 +85,7 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
 
     st.sidebar.header("🎛️ Algorithm Comparison")
 
-    # 💥 DYNAMIC ALGORITHM A CONTROLS
+
     st.sidebar.subheader("🔴 Algorithm A")
     base_a = st.sidebar.pills("Type", ["Dummy", "PSO", "GA"], default="PSO", key="base_a") or "PSO"
 
@@ -103,8 +103,6 @@ def render_sidebar(data_1=None, data_2=None, algo_1_name="", algo_2_name=""):
         algo_1 = "Dummy"
 
     st.sidebar.divider()
-
-    # 💥 DYNAMIC ALGORITHM B CONTROLS
     st.sidebar.subheader("🟢 Algorithm B")
     base_b = st.sidebar.pills("Type", ["Dummy", "PSO", "GA"], default="GA", key="base_b") or "GA"
 

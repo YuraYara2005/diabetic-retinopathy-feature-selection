@@ -39,7 +39,6 @@ MODEL_MAP = {
     "SVM":           "svm",
 }
 
-# 💥 TRANSLATE UI DROPDOWNS TO SAFE FOLDER NAMES
 ALGO_MAP = {
     "Dummy": "dummy",
     "PSO (Linear Decay)": "pso_linear",
@@ -51,7 +50,6 @@ ALGO_MAP = {
     "GA (Roulette + Uniform)": "ga_roul_uni"
 }
 
-# 💥 SHORT NAMES FOR THE HTML METRICS DISPLAY AND CHARTS
 ALGO_DISPLAY = {
     "dummy": "Dummy",
     "pso_linear": "PSO (Linear)",
